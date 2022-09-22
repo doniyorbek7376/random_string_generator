@@ -10,7 +10,7 @@ func Generate(regex string, count int) ([]string, error) {
 		return nil, err
 	}
 
-	rootNode, err := parser.Parse(tokens)
+	rootNode, err := parser.Parse(tokens, NewRootNode())
 	if err != nil {
 		return nil, err
 	}

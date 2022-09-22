@@ -43,7 +43,7 @@ func (node *randomNode) Generate() (string, error) {
 
 func (node *multiplyNode) Generate() (string, error) {
 	var sb strings.Builder
-	count := rand.Intn(node.maxQuantity-node.minQuantity) + node.minQuantity
+	count := rand.Intn(node.maxQuantity-node.minQuantity+1) + node.minQuantity
 	for i := 0; i < count; i++ {
 		childText, err := node.child.Generate()
 		if err != nil {
