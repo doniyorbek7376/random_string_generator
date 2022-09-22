@@ -1,6 +1,16 @@
 package app
 
-func Generate(regex string, count int) ([]string, error) {
+type GeneratorI interface {
+	Generate(regex string, count int) ([]string, error)
+}
+
+type generator struct{}
+
+func NewGenerator() GeneratorI {
+	return generator{}
+}
+
+func (g generator) Generate(regex string, count int) ([]string, error) {
 	var res []string
 
 	tokenizer := NewTokenizer()

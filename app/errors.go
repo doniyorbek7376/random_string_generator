@@ -15,4 +15,5 @@ var (
 	ErrInvalidAsteriks         = errors.New("invalid asteriks")
 	ErrInvalidQuestionMark     = errors.New("invalid question mark")
 	ErrInvalidPlus             = errors.New("invalid plus")
+	ErrInvalidBackSlash        = errors.New("invalid backslash")
 )

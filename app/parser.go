@@ -122,6 +122,21 @@ func (p *parser) Parse(tokens []models.Token, rootNode RootNode) (Node, error) {
 			nodes = NewRootNode()
 			nodes.AddChild(NewAlternateNode(left, right))
 			i = n
+
+		case models.BackSlash:
+			if i == n-1 {
+				return nil, ErrInvalidBackSlash
+			}
+			nextToken := tokens[i+1]
+			groupIndex, err := strconv.Atoi(nextToken.Value)
+			if err != nil {
+				return nil, ErrInvalidBackSlash
+			}
+			if groupIndex > 0 {
+				groupIndex--
+			}
+			nodes.AddChild(NewBackReferenceNode(groupIndex, &p.groupResults))
+
 		default:
 			nodes.AddChild(NewTextNode(token.Value))
 		}
@@ -155,7 +170,7 @@ func (p *parser) parseClassTokens(tokens []models.Token) (Node, error) {
 			if start > end {
 				return nil, ErrInvalidClassRange
 			}
-			for i := start[0] + 1; i <= end[0]; i++ {
+			for i := start[0] + 1; i < end[0]; i++ {
 				valueSet = append(valueSet, string(i))
 			}
 			continue
@@ -179,7 +194,7 @@ func (p *parser) parseClassTokens(tokens []models.Token) (Node, error) {
 
 func (p *parser) parseCounterTokens(tokens []models.Token, child Node) (Node, error) {
 	var (
-		min, max       int64
+		min, max       int
 		minStr, maxStr string
 		err            error
 		commaFound     bool
@@ -203,13 +218,13 @@ func (p *parser) parseCounterTokens(tokens []models.Token, child Node) (Node, er
 	}
 
 	if maxStr != "" {
-		max, err = strconv.ParseInt(maxStr, 10, 32)
+		max, err = strconv.Atoi(maxStr)
 		if err != nil {
 			return nil, err
 		}
 	}
 	if minStr != "" {
-		min, err = strconv.ParseInt(minStr, 10, 32)
+		min, err = strconv.Atoi(minStr)
 		if err != nil {
 			return nil, err
 		}

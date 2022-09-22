@@ -42,10 +42,6 @@ func TestGenerate(t *testing.T) {
 			name:  "bonus: alternating branch, sub patterns",
 			regex: "(1[0-2]|0[1-9])(:[0-5][0-9]){2} (A|P)M",
 		},
-		{
-			name:  "back reference",
-			regex: "(.{5})\\1\\1",
-		},
 	}
 	g := NewGenerator()
 	for _, tt := range tests {
