@@ -1,6 +1,16 @@
 package app
 
-func Generate(regex string, count int) ([]string, error) {
+type GeneratorI interface {
+	Generate(regex string, count int) ([]string, error)
+}
+
+type generator struct{}
+
+func NewGenerator() GeneratorI {
+	return generator{}
+}
+
+func (g generator) Generate(regex string, count int) ([]string, error) {
 	var res []string
 
 	tokenizer := NewTokenizer()
@@ -10,12 +20,13 @@ func Generate(regex string, count int) ([]string, error) {
 		return nil, err
 	}
 
-	rootNode, err := parser.Parse(tokens)
+	rootNode, err := parser.Parse(tokens, NewRootNode())
 	if err != nil {
 		return nil, err
 	}
 
 	for i := 0; i < count; i++ {
+		parser.ResetGroupResults()
 		value, err := rootNode.Generate()
 		if err != nil {
 			return nil, err

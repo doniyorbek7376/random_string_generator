@@ -7,6 +7,7 @@ type Node interface {
 type RootNode interface {
 	Node
 	AddChild(child Node)
+	PopChild() Node
 }
 
 type rootNode struct {
@@ -15,6 +16,16 @@ type rootNode struct {
 
 func (node *rootNode) AddChild(child Node) {
 	node.children = append(node.children, child)
+}
+
+func (node *rootNode) PopChild() Node {
+	n := len(node.children)
+	if n == 0 {
+		return nil
+	}
+	childNode := node.children[n-1]
+	node.children = node.children[:n-1]
+	return childNode
 }
 
 func NewRootNode() RootNode {
