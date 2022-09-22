@@ -1,3 +1,12 @@
+To run the program:
+
+`make run`
+
+To run tests:
+
+`make test`
+
+
 # Random String Generator
 
 Write a string generator that takes a regular expression as argument and returns strings that match the given regular expression. 

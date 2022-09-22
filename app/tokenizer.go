@@ -6,6 +6,7 @@ import (
 	"github.com/doniyorbek7376/random_string_generator/models"
 )
 
+// Tokenizer is for converting string input into an array of tokens for easier processing.
 type TokenizerI interface {
 	Tokenize(input string) ([]models.Token, error)
 }

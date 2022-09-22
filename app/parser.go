@@ -9,6 +9,7 @@ import (
 
 const asciiCharacters = `!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_` + "`" + `abcdefghijklmnopqrstuvwxyz{|}~`
 
+// Parser creates generator tree based on tokens.
 type ParserI interface {
 	Parse(tokens []models.Token, rootNode RootNode) (Node, error)
 	ResetGroupResults()
@@ -33,6 +34,8 @@ func (p *parser) Parse(tokens []models.Token, rootNode RootNode) (Node, error) {
 		token := tokens[i]
 		switch token.Type {
 		case models.ClassOpener:
+			// When we find opening bracket, we locate the corresponding closing pair for it, and
+			// process the tokens in between separately.
 			j := i + 1
 			for ; j < n; j++ {
 				if tokens[j].Type == models.ClassCloser {
@@ -40,6 +43,7 @@ func (p *parser) Parse(tokens []models.Token, rootNode RootNode) (Node, error) {
 				}
 			}
 			if j == n {
+				// Could not find closing bracket pair
 				return nil, ErrClassBracketNotClosed
 			}
 			node, err := p.parseClassTokens(tokens[i+1 : j])
@@ -92,16 +96,21 @@ func (p *parser) Parse(tokens []models.Token, rootNode RootNode) (Node, error) {
 			i = j
 
 		case models.ClassCloser, models.GroupCloser, models.CounterCloser:
+			// Closing brackets without opening pairs.
 			return nil, ErrInvalidClosingBracket
 
 		case models.Asteriks:
+			// Asteriks multiplies last node by [min,max] interval of [0, inf).
+			// We pop the last node and wrap it with MultiplyNode
 			lastNode := nodes.PopChild()
 			if lastNode == nil {
 				return nil, ErrInvalidAsteriks
 			}
+			// For simplicity, if the max value of the interval is infinite, I capped it with 10
 			nodes.AddChild(NewMultiplyNode(lastNode, 0, 10))
 
 		case models.QuestionMark:
+			// Same as with the Asteriks, but the [min, max] interval is [0, 1]
 			lastNode := nodes.PopChild()
 			if lastNode == nil {
 				return nil, ErrInvalidQuestionMark
@@ -109,6 +118,7 @@ func (p *parser) Parse(tokens []models.Token, rootNode RootNode) (Node, error) {
 			nodes.AddChild(NewMultiplyNode(lastNode, 0, 1))
 
 		case models.Plus:
+			// Same as with the Asteriks, but [min-max] interval is [1, inf)
 			lastNode := nodes.PopChild()
 			if lastNode == nil {
 				return nil, ErrInvalidPlus
@@ -116,19 +126,26 @@ func (p *parser) Parse(tokens []models.Token, rootNode RootNode) (Node, error) {
 			nodes.AddChild(NewMultiplyNode(lastNode, 1, 100))
 
 		case models.Dot:
+			// Any ascii character
 			nodes.AddChild(NewRandomNode(strings.Split(asciiCharacters, "")))
 
 		case models.AlternatingBranch:
+			// All the nodes accumulated so far, go to the left of the AlternateNode.
+			// All the remaininng tokens after getting parsed become right child of the node.
 			left := nodes
 			right, err := p.Parse(tokens[i+1:], NewRootNode())
 			if err != nil {
 				return nil, err
 			}
+			// As previous root node became left child of the AlternateNode,
+			// we need a new root node
 			nodes = NewRootNode()
 			nodes.AddChild(NewAlternateNode(left, right))
 			i = n
 
 		case models.BackSlash:
+			// If the backslash is followed by a digit, it's a back reference.
+			// Else, it's just a constant value
 			if i == n-1 {
 				return nil, ErrInvalidBackSlash
 			}
@@ -136,12 +153,15 @@ func (p *parser) Parse(tokens []models.Token, rootNode RootNode) (Node, error) {
 			nextToken := tokens[i]
 			groupIndex, err := strconv.Atoi(nextToken.Value)
 			if err != nil {
+				// Could not convert to int, so treating it as a literal value
 				nodes.AddChild(NewTextNode(nextToken.Value))
 				continue
 			}
-			if groupIndex > 0 {
-				groupIndex--
+			if groupIndex == 0 {
+				// Back reference should start with 1
+				return nil, ErrBackReferenceError
 			}
+			groupIndex--
 			nodes.AddChild(NewBackReferenceNode(groupIndex, &p.groupResults))
 
 		default:
@@ -153,6 +173,7 @@ func (p *parser) Parse(tokens []models.Token, rootNode RootNode) (Node, error) {
 	return rootNode, nil
 }
 
+// Parses tokens inside character class brackets []
 func (p *parser) parseClassTokens(tokens []models.Token) (Node, error) {
 	var (
 		negated bool
@@ -162,9 +183,6 @@ func (p *parser) parseClassTokens(tokens []models.Token) (Node, error) {
 		return nil, ErrEmptyClass
 	}
 	valueSet := []string{}
-	if negated && n == 1 {
-		return nil, ErrEmptyClass
-	}
 	for i, token := range tokens {
 		if token.Type == models.ClassNegater {
 			negated = true
@@ -184,17 +202,17 @@ func (p *parser) parseClassTokens(tokens []models.Token) (Node, error) {
 		}
 		valueSet = append(valueSet, token.Value)
 	}
-	if negated {
-		newValueSet := []string{}
-		negatedSet := toBoolMap(valueSet)
-		for _, ch := range asciiCharacters {
-			if negatedSet[string(ch)] {
-				continue
-			}
-			newValueSet = append(newValueSet, string(ch))
+	newValueSet := []string{}
+	m := toBoolMap(valueSet)
+	for _, ch := range asciiCharacters {
+		// if negated and the char is in map, or not negated and the char is not in map,
+		// then we don't add that char to the result
+		if negated && m[string(ch)] || !negated && !m[string(ch)] {
+			continue
 		}
-		valueSet = newValueSet
+		newValueSet = append(newValueSet, string(ch))
 	}
+	valueSet = newValueSet
 
 	return NewRandomNode(valueSet), nil
 }
@@ -243,6 +261,7 @@ func (p *parser) parseCounterTokens(tokens []models.Token, child Node) (Node, er
 	return NewMultiplyNode(child, int(min), int(max)), nil
 }
 
+// helper function to create "exists" map from an array
 func toBoolMap(arr []string) map[string]bool {
 	res := make(map[string]bool)
 	for _, val := range arr {
