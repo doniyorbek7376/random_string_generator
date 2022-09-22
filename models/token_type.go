@@ -14,6 +14,9 @@ const (
 	ClassRange
 	GroupOpener
 	GroupCloser
+	CounterOpener
+	CounterCloser
 	AlternatingBranch
-	BackReference
+	Comma
+	BackSlash
 )
