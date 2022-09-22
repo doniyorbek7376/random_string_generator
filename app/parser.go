@@ -11,6 +11,7 @@ const asciiCharacters = `!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUV
 
 type ParserI interface {
 	Parse(tokens []models.Token, rootNode RootNode) (Node, error)
+	ResetGroupResults()
 }
 
 type parser struct {
@@ -19,6 +20,10 @@ type parser struct {
 
 func NewParser() ParserI {
 	return &parser{make([]string, 0)}
+}
+
+func (p *parser) ResetGroupResults() {
+	p.groupResults = make([]string, 0)
 }
 
 func (p *parser) Parse(tokens []models.Token, rootNode RootNode) (Node, error) {
@@ -127,10 +132,12 @@ func (p *parser) Parse(tokens []models.Token, rootNode RootNode) (Node, error) {
 			if i == n-1 {
 				return nil, ErrInvalidBackSlash
 			}
-			nextToken := tokens[i+1]
+			i++
+			nextToken := tokens[i]
 			groupIndex, err := strconv.Atoi(nextToken.Value)
 			if err != nil {
-				return nil, ErrInvalidBackSlash
+				nodes.AddChild(NewTextNode(nextToken.Value))
+				continue
 			}
 			if groupIndex > 0 {
 				groupIndex--

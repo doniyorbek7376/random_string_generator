@@ -26,6 +26,7 @@ func (g generator) Generate(regex string, count int) ([]string, error) {
 	}
 
 	for i := 0; i < count; i++ {
+		parser.ResetGroupResults()
 		value, err := rootNode.Generate()
 		if err != nil {
 			return nil, err
