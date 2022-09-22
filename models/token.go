@@ -1,6 +1,6 @@
 package models
 
 type Token struct {
-	Type  string
+	Type  TokenType
 	Value string
 }
